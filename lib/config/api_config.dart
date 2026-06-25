@@ -9,7 +9,7 @@ class ApiConfig {
   ///   - Laragon virtual host:    http://food-delivery.test/api
   ///
   /// Start the backend with:  php artisan serve   (defaults to port 8000)
-  static const String baseUrl = 'http://10.0.2.2:8000/api';
+  static const String baseUrl = 'http://192.168.1.5:8000/api';
 
   static const Duration connectTimeout = Duration(seconds: 15);
   static const Duration receiveTimeout = Duration(seconds: 15);

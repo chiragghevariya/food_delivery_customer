@@ -39,13 +39,27 @@ class _CartScreenState extends State<CartScreen> {
       setState(() {
         _lat = loc.lat;
         _lng = loc.lng;
+        _address.text = 'Fetching address...';
       });
+
+      final address = await LocationService.getAddressFromLatLng(loc.lat, loc.lng);
+
       if (mounted) {
+        setState(() {
+          _address.text = address;
+        });
         ScaffoldMessenger.of(context)
             .showSnackBar(const SnackBar(content: Text('Current location added')));
       }
     } catch (e) {
       if (mounted) {
+        setState(() {
+          if (_lat != null && _lng != null) {
+            _address.text = '${_lat!.toStringAsFixed(6)}, ${_lng!.toStringAsFixed(6)}';
+          } else {
+            _address.clear();
+          }
+        });
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString())));
       }
     }
@@ -86,7 +100,19 @@ class _CartScreenState extends State<CartScreen> {
       body: Consumer<CartProvider>(
         builder: (context, cart, _) {
           if (cart.isEmpty) {
-            return const Center(child: Text('Your cart is empty.'));
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.shopping_bag_outlined, size: 64, color: AppColors.textLight.withOpacity(0.5)),
+                  const SizedBox(height: 12),
+                  const Text(
+                    'Your cart is empty',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.textLight),
+                  ),
+                ],
+              ),
+            );
           }
           return SingleChildScrollView(
             padding: const EdgeInsets.all(16),
@@ -95,43 +121,87 @@ class _CartScreenState extends State<CartScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  // --- cart items ---
-                  ...cart.items.map((item) => _cartLine(cart, item.menuItem.id, item.menuItem.name,
-                      item.menuItem.price, item.quantity, item.subtotal)),
-                  const Divider(height: 24),
-                  // --- price summary ---
-                  _summaryRow('Subtotal', cart.subtotal),
-                  _summaryRow('Delivery fee', CartProvider.deliveryFee),
-                  const SizedBox(height: 4),
-                  _summaryRow('Total', cart.total, bold: true),
+                  _sectionHeader('Items in Cart'),
+                  Container(
+                    padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: const Color(0xFFF1F3F5)),
+                    ),
+                    child: Column(
+                      children: cart.items.map((item) => _cartLine(cart, item.menuItem.id, item.menuItem.name,
+                          item.menuItem.price, item.quantity, item.subtotal)).toList(),
+                    ),
+                  ),
                   const SizedBox(height: 20),
-                  // --- delivery details ---
-                  TextFormField(
-                    controller: _address,
-                    decoration: const InputDecoration(
-                      labelText: 'Delivery address',
-                      prefixIcon: Icon(Icons.home_outlined),
+
+                  _sectionHeader('Payment Summary'),
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: const Color(0xFFF1F3F5)),
                     ),
-                    validator: (v) =>
-                        (v == null || v.trim().isEmpty) ? 'Enter a delivery address' : null,
+                    child: Column(
+                      children: [
+                        _summaryRow('Subtotal', cart.subtotal),
+                        const SizedBox(height: 6),
+                        _summaryRow('Delivery fee', CartProvider.deliveryFee),
+                        const Padding(
+                          padding: EdgeInsets.symmetric(vertical: 8),
+                          child: Divider(height: 1, color: Color(0xFFF1F3F5)),
+                        ),
+                        _summaryRow('Total', cart.total, bold: true),
+                      ],
+                    ),
                   ),
-                  const SizedBox(height: 8),
-                  Align(
-                    alignment: Alignment.centerLeft,
-                    child: TextButton.icon(
-                      onPressed: _useMyLocation,
-                      icon: const Icon(Icons.my_location, size: 18),
-                      label: Text(_lat == null ? 'Use my current location' : 'Location added ✓'),
+                  const SizedBox(height: 20),
+
+                  _sectionHeader('Delivery Details'),
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: const Color(0xFFF1F3F5)),
                     ),
-                  ),
-                  const SizedBox(height: 8),
-                  TextFormField(
-                    controller: _notes,
-                    decoration: const InputDecoration(
-                      labelText: 'Notes (optional)',
-                      prefixIcon: Icon(Icons.notes_outlined),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        TextFormField(
+                          controller: _address,
+                          decoration: const InputDecoration(
+                            labelText: 'Delivery Address',
+                            prefixIcon: Icon(Icons.home_outlined),
+                          ),
+                          validator: (v) =>
+                              (v == null || v.trim().isEmpty) ? 'Enter a delivery address' : null,
+                        ),
+                        const SizedBox(height: 6),
+                        Align(
+                          alignment: Alignment.centerLeft,
+                          child: TextButton.icon(
+                            onPressed: _useMyLocation,
+                            icon: const Icon(Icons.my_location, size: 16, color: AppColors.primary),
+                            label: Text(
+                              _lat == null ? 'Use my current GPS location' : 'Location added ✓',
+                              style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold, fontSize: 13),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        TextFormField(
+                          controller: _notes,
+                          decoration: const InputDecoration(
+                            labelText: 'Add notes for the rider...',
+                            prefixIcon: Icon(Icons.notes_outlined),
+                          ),
+                          maxLines: 2,
+                        ),
+                      ],
                     ),
-                    maxLines: 2,
                   ),
                   const SizedBox(height: 24),
                   PrimaryButton(
@@ -148,36 +218,71 @@ class _CartScreenState extends State<CartScreen> {
     );
   }
 
+  Widget _sectionHeader(String title) {
+    return Padding(
+      padding: const EdgeInsets.only(left: 4, bottom: 8),
+      child: Text(
+        title,
+        style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppColors.textLight, letterSpacing: 0.5),
+      ),
+    );
+  }
+
   Widget _cartLine(
       CartProvider cart, int id, String name, double price, int qty, double subtotal) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6),
+      padding: const EdgeInsets.symmetric(vertical: 8),
       child: Row(
         children: [
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(name, style: const TextStyle(fontWeight: FontWeight.w600)),
-                Text('\$${price.toStringAsFixed(2)}',
-                    style: const TextStyle(color: AppColors.textLight, fontSize: 12)),
+                Text(
+                  name,
+                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AppColors.text),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  '\$${price.toStringAsFixed(2)} each',
+                  style: const TextStyle(color: AppColors.textLight, fontSize: 12),
+                ),
               ],
             ),
           ),
           // quantity stepper
-          IconButton(
-            onPressed: () => cart.decrease(id),
-            icon: const Icon(Icons.remove_circle_outline),
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              IconButton(
+                onPressed: () => cart.decrease(id),
+                icon: const Icon(Icons.remove_circle_outline, color: AppColors.textLight, size: 22),
+                constraints: const BoxConstraints(),
+                padding: const EdgeInsets.all(4),
+              ),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 6),
+                child: Text(
+                  '$qty',
+                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AppColors.text),
+                ),
+              ),
+              IconButton(
+                onPressed: () => cart.increase(id),
+                icon: const Icon(Icons.add_circle_outline, color: AppColors.primary, size: 22),
+                constraints: const BoxConstraints(),
+                padding: const EdgeInsets.all(4),
+              ),
+            ],
           ),
-          Text('$qty', style: const TextStyle(fontWeight: FontWeight.bold)),
-          IconButton(
-            onPressed: () => cart.increase(id),
-            icon: const Icon(Icons.add_circle_outline, color: AppColors.primary),
-          ),
+          const SizedBox(width: 8),
           SizedBox(
-            width: 60,
-            child: Text('\$${subtotal.toStringAsFixed(2)}',
-                textAlign: TextAlign.right, style: const TextStyle(fontWeight: FontWeight.w600)),
+            width: 64,
+            child: Text(
+              '\$${subtotal.toStringAsFixed(2)}',
+              textAlign: TextAlign.right,
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AppColors.text),
+            ),
           ),
         ],
       ),
@@ -186,16 +291,16 @@ class _CartScreenState extends State<CartScreen> {
 
   Widget _summaryRow(String label, double value, {bool bold = false}) {
     final style = TextStyle(
-      fontSize: bold ? 18 : 15,
-      fontWeight: bold ? FontWeight.bold : FontWeight.normal,
+      fontSize: bold ? 16 : 14,
+      fontWeight: bold ? FontWeight.bold : FontWeight.w500,
       color: bold ? AppColors.primary : AppColors.text,
     );
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 2),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [Text(label, style: style), Text('\$${value.toStringAsFixed(2)}', style: style)],
-      ),
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(label, style: bold ? style : const TextStyle(color: AppColors.textLight, fontSize: 14)),
+        Text('\$${value.toStringAsFixed(2)}', style: style)
+      ],
     );
   }
 }

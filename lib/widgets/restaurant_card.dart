@@ -12,59 +12,114 @@ class RestaurantCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-      clipBehavior: Clip.antiAlias,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-      child: InkWell(
-        onTap: onTap,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            SizedBox(height: 140, width: double.infinity, child: _banner()),
-            Padding(
-              padding: const EdgeInsets.all(12),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 16,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(20),
+        child: InkWell(
+          onTap: onTap,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Stack(
                 children: [
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          restaurant.name,
-                          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                        ),
-                      ),
-                      _openBadge(),
-                    ],
-                  ),
-                  if (restaurant.description != null && restaurant.description!.isNotEmpty) ...[
-                    const SizedBox(height: 4),
-                    Text(
-                      restaurant.description!,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(color: AppColors.textLight),
-                    ),
-                  ],
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      const Icon(Icons.star, size: 16, color: Colors.amber),
-                      const SizedBox(width: 4),
-                      Text(restaurant.rating.toStringAsFixed(1)),
-                      if (restaurant.distanceKm != null) ...[
-                        const SizedBox(width: 12),
-                        const Icon(Icons.location_on, size: 16, color: AppColors.textLight),
-                        const SizedBox(width: 2),
-                        Text('${restaurant.distanceKm!.toStringAsFixed(1)} km'),
-                      ],
-                    ],
+                  SizedBox(height: 180, width: double.infinity, child: _banner()),
+                  Positioned(
+                    top: 14,
+                    right: 14,
+                    child: _openBadge(),
                   ),
                 ],
               ),
-            ),
-          ],
+              Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Expanded(
+                          child: Text(
+                            restaurant.name,
+                            style: const TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: AppColors.text,
+                            ),
+                          ),
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFFEF3C7),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(Icons.star, size: 14, color: Color(0xFFD97706)),
+                              const SizedBox(width: 4),
+                              Text(
+                                restaurant.rating.toStringAsFixed(1),
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                  color: Color(0xFFD97706),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    if (restaurant.description != null && restaurant.description!.isNotEmpty) ...[
+                      const SizedBox(height: 6),
+                      Text(
+                        restaurant.description!,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(color: AppColors.textLight, fontSize: 13),
+                      ),
+                    ],
+                    const SizedBox(height: 12),
+                    const Divider(height: 1, color: Color(0xFFF1F3F5)),
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        const Icon(Icons.delivery_dining_outlined, size: 18, color: AppColors.primary),
+                        const SizedBox(width: 6),
+                        const Text(
+                          'Delivery: \$2.00',
+                          style: TextStyle(fontSize: 12, color: AppColors.textLight, fontWeight: FontWeight.bold),
+                        ),
+                        if (restaurant.distanceKm != null) ...[
+                          const SizedBox(width: 20),
+                          const Icon(Icons.location_on_outlined, size: 18, color: AppColors.textLight),
+                          const SizedBox(width: 4),
+                          Text(
+                            '${restaurant.distanceKm!.toStringAsFixed(1)} km',
+                            style: const TextStyle(fontSize: 12, color: AppColors.textLight, fontWeight: FontWeight.bold),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -92,16 +147,28 @@ class RestaurantCard extends StatelessWidget {
 
   Widget _openBadge() {
     final open = restaurant.isOpen;
-    final color = open ? Colors.green : Colors.red;
+    final color = open ? const Color(0xFF10B981) : const Color(0xFFEF4444);
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.15),
-        borderRadius: BorderRadius.circular(20),
+        color: color.withOpacity(0.95),
+        borderRadius: BorderRadius.circular(10),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: Text(
-        open ? 'Open' : 'Closed',
-        style: TextStyle(color: color, fontSize: 12, fontWeight: FontWeight.w600),
+        open ? 'OPEN' : 'CLOSED',
+        style: const TextStyle(
+          color: Colors.white,
+          fontSize: 9,
+          fontWeight: FontWeight.bold,
+          letterSpacing: 0.8,
+        ),
       ),
     );
   }

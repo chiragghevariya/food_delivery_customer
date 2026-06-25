@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../config/app_theme.dart';
 import '../config/routes.dart';
 import '../providers/auth_provider.dart';
 import '../utils/error_utils.dart';
@@ -55,15 +56,55 @@ class _RegisterScreenState extends State<RegisterScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Create account')),
+      backgroundColor: Colors.white,
+      appBar: AppBar(
+        title: const Text('Register'),
+        backgroundColor: Colors.white,
+        elevation: 0,
+      ),
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24),
+          padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 12),
           child: Form(
             key: _formKey,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
+                Center(
+                  child: Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: AppColors.primary.withOpacity(0.08),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.person_add_outlined,
+                      size: 48,
+                      color: AppColors.primary,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                const Text(
+                  'Create Account',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.text,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                const Text(
+                  'Join us to order delicious food nearby!',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: AppColors.textLight,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                const SizedBox(height: 28),
                 TextFormField(
                   controller: _name,
                   decoration: const InputDecoration(
@@ -77,11 +118,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   controller: _email,
                   keyboardType: TextInputType.emailAddress,
                   decoration: const InputDecoration(
-                    labelText: 'Email',
+                    labelText: 'Email Address',
                     prefixIcon: Icon(Icons.email_outlined),
                   ),
                   validator: (v) =>
-                      (v == null || !v.contains('@')) ? 'Enter a valid email' : null,
+                      (v == null || !v.contains('@')) ? 'Enter a valid email address' : null,
                 ),
                 const SizedBox(height: 16),
                 TextFormField(
@@ -101,7 +142,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     prefixIcon: Icon(Icons.lock_outline),
                   ),
                   validator: (v) =>
-                      (v == null || v.length < 8) ? 'Min 8 characters' : null,
+                      (v == null || v.length < 8) ? 'Password must be at least 8 characters' : null,
                 ),
                 const SizedBox(height: 16),
                 TextFormField(
@@ -113,8 +154,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   ),
                   validator: (v) => (v != _password.text) ? 'Passwords do not match' : null,
                 ),
-                const SizedBox(height: 24),
+                const SizedBox(height: 28),
                 PrimaryButton(label: 'Register', loading: _loading, onPressed: _submit),
+                const SizedBox(height: 16),
               ],
             ),
           ),

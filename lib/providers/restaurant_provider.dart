@@ -1,5 +1,5 @@
 import 'package:flutter/foundation.dart';
-import '../models/category.dart';
+import '../models/category.dart' as model;
 import '../models/restaurant.dart';
 import '../services/restaurant_service.dart';
 import '../utils/error_utils.dart';
@@ -10,14 +10,14 @@ class RestaurantProvider extends ChangeNotifier {
   final RestaurantService _service = RestaurantService();
 
   List<Restaurant> _restaurants = [];
-  List<Category> _categories = [];
+  List<model.Category> _categories = [];
   bool _loading = false;
   String? _error;
   String _search = '';
   int? _selectedCategoryId;
 
   List<Restaurant> get restaurants => _restaurants;
-  List<Category> get categories => _categories;
+  List<model.Category> get categories => _categories;
   bool get loading => _loading;
   String? get error => _error;
   String get search => _search;

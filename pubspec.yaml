@@ -28,6 +28,7 @@ dependencies:
   # --- storage & formatting ---
   shared_preferences: ^2.2.3
   intl: ^0.19.0
+  geocoding: ^4.0.0
 
 dev_dependencies:
   flutter_test:

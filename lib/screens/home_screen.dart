@@ -53,10 +53,29 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Restaurants'),
+        title: const Column(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.location_on, size: 14, color: AppColors.primary),
+                SizedBox(width: 4),
+                Text(
+                  'DELIVERING TO',
+                  style: TextStyle(fontSize: 10, letterSpacing: 1.2, color: AppColors.textLight, fontWeight: FontWeight.bold),
+                ),
+              ],
+            ),
+            Text(
+              'Times Square, New York, NY',
+              style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppColors.text),
+            ),
+          ],
+        ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.receipt_long),
+            icon: const Icon(Icons.receipt_long_outlined),
             tooltip: 'My orders',
             onPressed: () => Navigator.pushNamed(context, Routes.orders),
           ),
@@ -66,7 +85,7 @@ class _HomeScreenState extends State<HomeScreen> {
               alignment: Alignment.center,
               children: [
                 IconButton(
-                  icon: const Icon(Icons.shopping_cart),
+                  icon: const Icon(Icons.shopping_bag_outlined),
                   tooltip: 'Cart',
                   onPressed: () => Navigator.pushNamed(context, Routes.cart),
                 ),
@@ -75,41 +94,82 @@ class _HomeScreenState extends State<HomeScreen> {
               ],
             ),
           ),
-          IconButton(icon: const Icon(Icons.logout), tooltip: 'Logout', onPressed: _logout),
+          IconButton(
+            icon: const Icon(Icons.logout_outlined),
+            tooltip: 'Logout',
+            onPressed: _logout,
+          ),
         ],
       ),
       body: Consumer<RestaurantProvider>(
         builder: (context, prov, _) {
           return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Search bar
+              // Search bar with clean shadow
               Padding(
-                padding: const EdgeInsets.all(12),
-                child: TextField(
-                  onChanged: _onSearchChanged,
-                  decoration: const InputDecoration(
-                    hintText: 'Search restaurants...',
-                    prefixIcon: Icon(Icons.search),
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+                child: Container(
+                  decoration: BoxDecoration(
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.03),
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: TextField(
+                    onChanged: _onSearchChanged,
+                    decoration: InputDecoration(
+                      hintText: 'Search restaurants, dishes...',
+                      prefixIcon: const Icon(Icons.search, color: AppColors.textLight),
+                      fillColor: Colors.white,
+                      filled: true,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(16),
+                        borderSide: BorderSide.none,
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(16),
+                        borderSide: BorderSide.none,
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(16),
+                        borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
+                      ),
+                    ),
                   ),
                 ),
               ),
               // Category chips
               if (prov.categories.isNotEmpty)
                 SizedBox(
-                  height: 44,
+                  height: 96,
                   child: ListView(
                     scrollDirection: Axis.horizontal,
-                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
                     children: prov.categories
                         .map((cat) => CategoryChip(
                               label: cat.name,
+                              imageUrl: cat.image,
                               selected: prov.selectedCategoryId == cat.id,
                               onTap: () => prov.selectCategory(cat.id),
                             ))
                         .toList(),
                   ),
                 ),
-              const SizedBox(height: 8),
+              const Padding(
+                padding: EdgeInsets.fromLTRB(16, 8, 16, 12),
+                child: Text(
+                  'Popular Restaurants',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.text,
+                  ),
+                ),
+              ),
               Expanded(child: _buildList(prov)),
             ],
           );
