@@ -15,6 +15,7 @@ class OrderService {
     double? lat,
     double? lng,
     String? notes,
+    String? paymentIntentId,
   }) async {
     final res = await _dio.post('/orders', data: {
       'restaurant_id': restaurantId,
@@ -26,8 +27,23 @@ class OrderService {
       if (lat != null) 'lat': lat,
       if (lng != null) 'lng': lng,
       if (notes != null && notes.isNotEmpty) 'notes': notes,
+      if (paymentIntentId != null) 'payment_intent_id': paymentIntentId,
     });
     return Order.fromJson(res.data['data'] as Map<String, dynamic>);
+  }
+
+  /// POST /api/orders/payment-intent
+  Future<Map<String, dynamic>> createPaymentIntent({
+    required int restaurantId,
+    required List<CartItem> items,
+  }) async {
+    final res = await _dio.post('/orders/payment-intent', data: {
+      'restaurant_id': restaurantId,
+      'items': items
+          .map((c) => {'menu_item_id': c.menuItem.id, 'quantity': c.quantity})
+          .toList(),
+    });
+    return res.data as Map<String, dynamic>;
   }
 
   /// GET /api/orders  (the logged-in customer's own orders)

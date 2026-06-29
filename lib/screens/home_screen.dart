@@ -9,6 +9,7 @@ import '../providers/cart_provider.dart';
 import '../providers/restaurant_provider.dart';
 import '../widgets/category_chip.dart';
 import '../widgets/restaurant_card.dart';
+import '../widgets/shimmer_loading.dart';
 
 /// Lists restaurants with a search bar and category filter chips.
 class HomeScreen extends StatefulWidget {
@@ -68,7 +69,7 @@ class _HomeScreenState extends State<HomeScreen> {
               ],
             ),
             Text(
-              'Times Square, New York, NY',
+              'Bhavnagar, Gujarat, India',
               style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppColors.text),
             ),
           ],
@@ -180,7 +181,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _buildList(RestaurantProvider prov) {
     if (prov.loading && prov.restaurants.isEmpty) {
-      return const Center(child: CircularProgressIndicator());
+      return const ShimmerListPlaceholder(count: 3);
     }
     if (prov.error != null && prov.restaurants.isEmpty) {
       return Center(

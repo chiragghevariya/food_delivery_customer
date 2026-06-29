@@ -1,15 +1,18 @@
 import 'dart:async';
+import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:intl/intl.dart';
 import '../config/app_theme.dart';
 import '../models/order.dart';
+import '../services/directions_service.dart';
 import '../services/notification_service.dart';
 import '../services/order_service.dart';
 import '../utils/error_utils.dart';
 import '../utils/status_utils.dart';
 import '../widgets/status_badge.dart';
+import '../widgets/shimmer_loading.dart';
 
 /// Shows one order with its items and a LIVE status timeline.
 /// While the order is in progress, it re-checks the status every few seconds.
@@ -22,6 +25,7 @@ class OrderDetailScreen extends StatefulWidget {
 
 class _OrderDetailScreenState extends State<OrderDetailScreen> {
   final OrderService _service = OrderService();
+  final DirectionsService _directionsService = DirectionsService();
 
   int? _orderId;
   Order? _order;
@@ -29,6 +33,8 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
   String? _error;
   String? _lastStatus; // used to detect status changes for notifications
   Timer? _poll;
+  GoogleMapController? _mapController;
+  List<LatLng> _routePoints = [];
 
   @override
   void didChangeDependencies() {
@@ -46,6 +52,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
   @override
   void dispose() {
     _poll?.cancel();
+    _mapController?.dispose();
     super.dispose();
   }
 
@@ -60,12 +67,45 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
         );
       }
       _lastStatus = order.status;
+
+      List<LatLng> newRoute = _routePoints;
+      final hasCustomer = order.lat != null && order.lng != null;
+      final hasRider = order.rider != null && order.rider!.lat != null && order.rider!.lng != null;
+
+      if (hasCustomer && hasRider) {
+        final customerLatLng = LatLng(order.lat!, order.lng!);
+        final riderLatLng = LatLng(order.rider!.lat!, order.rider!.lng!);
+
+        final prevRiderLat = _order?.rider?.lat;
+        final prevRiderLng = _order?.rider?.lng;
+        final prevCustomerLat = _order?.lat;
+        final prevCustomerLng = _order?.lng;
+
+        final coordinatesChanged = prevRiderLat != order.rider!.lat ||
+            prevRiderLng != order.rider!.lng ||
+            prevCustomerLat != order.lat ||
+            prevCustomerLng != order.lng;
+
+        if (_routePoints.isEmpty || coordinatesChanged) {
+          newRoute = await _directionsService.getRoute(riderLatLng, customerLatLng);
+        }
+      } else {
+        newRoute = [];
+      }
+
       if (!mounted) return;
       setState(() {
         _order = order;
+        _routePoints = newRoute;
         _loading = false;
         _error = null;
       });
+
+      // Fit map bounds after build
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _fitMapBounds();
+      });
+
       // Stop polling once the order is finished.
       if (order.isFinished) _poll?.cancel();
     } catch (e) {
@@ -74,6 +114,32 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
         _error = apiErrorMessage(e);
         _loading = false;
       });
+    }
+  }
+
+  void _fitMapBounds() {
+    if (_mapController == null || _order == null) return;
+    final order = _order!;
+    final hasCustomer = order.lat != null && order.lng != null;
+    final hasRider = order.rider != null && order.rider!.lat != null && order.rider!.lng != null;
+
+    if (hasCustomer && hasRider) {
+      final customerLatLng = LatLng(order.lat!, order.lng!);
+      final riderLatLng = LatLng(order.rider!.lat!, order.rider!.lng!);
+
+      final southwest = LatLng(
+        min(customerLatLng.latitude, riderLatLng.latitude),
+        min(customerLatLng.longitude, riderLatLng.longitude),
+      );
+      final northeast = LatLng(
+        max(customerLatLng.latitude, riderLatLng.latitude),
+        max(customerLatLng.longitude, riderLatLng.longitude),
+      );
+
+      final bounds = LatLngBounds(southwest: southwest, northeast: northeast);
+      _mapController!.animateCamera(CameraUpdate.newLatLngBounds(bounds, 40));
+    } else if (hasCustomer) {
+      _mapController!.animateCamera(CameraUpdate.newLatLngZoom(LatLng(order.lat!, order.lng!), 15));
     }
   }
 
@@ -107,7 +173,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
   }
 
   Widget _buildBody() {
-    if (_loading) return const Center(child: CircularProgressIndicator());
+    if (_loading) return const ShimmerDetailPlaceholder();
     if (_error != null) {
       return Center(
         child: Padding(
@@ -323,6 +389,35 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
   }
 
   Widget _map(Order order) {
+    final hasCustomer = order.lat != null && order.lng != null;
+    final hasRider = order.rider != null && order.rider!.lat != null && order.rider!.lng != null;
+
+    final markers = <Marker>{};
+    if (hasCustomer) {
+      markers.add(
+        Marker(
+          markerId: const MarkerId('delivery'),
+          position: LatLng(order.lat!, order.lng!),
+          infoWindow: const InfoWindow(title: 'Delivery Address'),
+          icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueOrange),
+        ),
+      );
+    }
+
+    if (hasRider) {
+      markers.add(
+        Marker(
+          markerId: const MarkerId('rider'),
+          position: LatLng(order.rider!.lat!, order.rider!.lng!),
+          infoWindow: InfoWindow(
+            title: 'Courier: ${order.rider!.name}',
+            snippet: 'Last updated: ${order.rider!.locationUpdatedAt != null ? DateFormat('h:mm a').format(order.rider!.locationUpdatedAt!.toLocal()) : 'just now'}',
+          ),
+          icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueAzure),
+        ),
+      );
+    }
+
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -345,16 +440,24 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
               target: LatLng(order.lat!, order.lng!),
               zoom: 15,
             ),
-            markers: {
-              Marker(
-                markerId: const MarkerId('delivery'),
-                position: LatLng(order.lat!, order.lng!),
-                icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueOrange),
-              ),
-            },
+            markers: markers,
+            polylines: _routePoints.isNotEmpty
+                ? {
+                    Polyline(
+                      polylineId: const PolylineId('route'),
+                      points: _routePoints,
+                      color: AppColors.primary,
+                      width: 4,
+                    ),
+                  }
+                : {},
             zoomControlsEnabled: false,
             myLocationButtonEnabled: false,
-            liteModeEnabled: true,
+            liteModeEnabled: false,
+            onMapCreated: (controller) {
+              _mapController = controller;
+              _fitMapBounds();
+            },
           ),
         ),
       ),

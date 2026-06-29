@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 /// App colors. The brand accent is a vibrant orange-red (#FF5722).
 class AppColors {
@@ -15,6 +16,7 @@ ThemeData buildAppTheme() {
   final base = ThemeData(useMaterial3: true);
 
   return base.copyWith(
+    textTheme: GoogleFonts.outfitTextTheme(base.textTheme),
     colorScheme: ColorScheme.fromSeed(
       seedColor: AppColors.primary,
       primary: AppColors.primary,

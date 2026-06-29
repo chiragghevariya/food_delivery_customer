@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import '../models/user.dart';
 import '../services/auth_service.dart';
+import '../services/notification_service.dart';
 
 /// Holds the logged-in user and exposes login/register/logout to the UI.
 class AuthProvider extends ChangeNotifier {
@@ -31,7 +32,12 @@ class AuthProvider extends ChangeNotifier {
   Future<void> login(String email, String password) async {
     _setBusy(true);
     try {
-      _user = await _authService.login(email: email, password: password);
+      final fcmToken = await NotificationService.getFCMToken();
+      _user = await _authService.login(
+        email: email,
+        password: password,
+        fcmToken: fcmToken,
+      );
     } finally {
       _setBusy(false);
     }
@@ -46,12 +52,14 @@ class AuthProvider extends ChangeNotifier {
   }) async {
     _setBusy(true);
     try {
+      final fcmToken = await NotificationService.getFCMToken();
       _user = await _authService.register(
         name: name,
         email: email,
         password: password,
         passwordConfirmation: passwordConfirmation,
         phone: phone,
+        fcmToken: fcmToken,
       );
     } finally {
       _setBusy(false);

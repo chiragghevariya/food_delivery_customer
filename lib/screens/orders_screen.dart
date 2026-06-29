@@ -6,6 +6,7 @@ import '../models/order.dart';
 import '../services/order_service.dart';
 import '../utils/error_utils.dart';
 import '../widgets/status_badge.dart';
+import '../widgets/shimmer_loading.dart';
 
 /// Lists the logged-in customer's orders.
 class OrdersScreen extends StatefulWidget {
@@ -38,7 +39,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
         future: _future,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
+            return const ShimmerListPlaceholder(count: 3);
           }
           if (snapshot.hasError) {
             return Center(child: Text(apiErrorMessage(snapshot.error!)));

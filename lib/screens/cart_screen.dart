@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
+import 'package:flutter_stripe/flutter_stripe.dart';
 import 'package:provider/provider.dart';
+import 'package:dio/dio.dart';
 import '../config/app_theme.dart';
 import '../config/routes.dart';
 import '../providers/cart_provider.dart';
+import '../providers/auth_provider.dart';
 import '../services/location_service.dart';
 import '../services/order_service.dart';
-import '../utils/error_utils.dart';
 import '../widgets/primary_button.dart';
 
 /// Shows the cart, lets the user edit quantities and place the order.
@@ -69,8 +72,56 @@ class _CartScreenState extends State<CartScreen> {
     if (!_formKey.currentState!.validate()) return;
     if (cart.isEmpty || cart.restaurantId == null) return;
 
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final user = authProvider.user;
+
     setState(() => _placing = true);
     try {
+      String? paymentIntentId;
+
+      if (!kIsWeb) {
+        debugPrint('=== Stripe Checkout: Starting PaymentIntent creation on backend ===');
+        // 1) Create Stripe Payment Intent on Backend
+        final intentData = await _orderService.createPaymentIntent(
+          restaurantId: cart.restaurantId!,
+          items: cart.items,
+        );
+
+        final clientSecret = intentData['client_secret'] as String;
+        paymentIntentId = intentData['payment_intent_id'] as String;
+        debugPrint('=== Stripe Checkout: PaymentIntent created successfully. ID: $paymentIntentId ===');
+
+        // 2) Initialize Stripe Payment Sheet
+        debugPrint('=== Stripe Checkout: Initializing Stripe Payment Sheet ===');
+        await Stripe.instance.initPaymentSheet(
+          paymentSheetParameters: SetupPaymentSheetParameters(
+            paymentIntentClientSecret: clientSecret,
+            merchantDisplayName: 'FoodDash Delivery',
+            style: ThemeMode.light,
+            returnURL: 'fooddeliverycustomer://redirect',
+            billingDetails: BillingDetails(
+              name: user?.name,
+              email: user?.email,
+              phone: user?.phone,
+            ),
+            billingDetailsCollectionConfiguration: const BillingDetailsCollectionConfiguration(
+              name: CollectionMode.always,
+              email: CollectionMode.always,
+              phone: CollectionMode.always,
+              address: AddressCollectionMode.full,
+            ),
+          ),
+        );
+        debugPrint('=== Stripe Checkout: Stripe Payment Sheet Initialized ===');
+
+        // 3) Present Stripe Payment Sheet on Phone
+        debugPrint('=== Stripe Checkout: Presenting Stripe Payment Sheet ===');
+        await Stripe.instance.presentPaymentSheet();
+        debugPrint('=== Stripe Checkout: Payment Sheet presented and completed successfully ===');
+      }
+
+      debugPrint('=== Stripe Checkout: Submitting order details to backend ===');
+      // 4) Complete order placing on backend with verified payment_intent_id (mobile only) or null (web)
       final order = await _orderService.placeOrder(
         restaurantId: cart.restaurantId!,
         items: cart.items,
@@ -78,16 +129,46 @@ class _CartScreenState extends State<CartScreen> {
         lat: _lat,
         lng: _lng,
         notes: _notes.text.trim(),
+        paymentIntentId: paymentIntentId,
       );
+      debugPrint('=== Stripe Checkout: Order placed successfully on backend. Order ID: ${order.id} ===');
+
       cart.clear();
       if (!mounted) return;
       // Replace the cart screen with the new order's detail screen.
       Navigator.pushReplacementNamed(context, Routes.orderDetail, arguments: order.id);
       ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(content: Text('Order placed!')));
-    } catch (e) {
+          .showSnackBar(const SnackBar(content: Text('Order placed successfully!')));
+    } on StripeException catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(apiErrorMessage(e))));
+      debugPrint('StripeException: ${e.error.localizedMessage} | Code: ${e.error.code} | Message: ${e.error.message}');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(e.error.localizedMessage ?? e.error.message ?? 'Payment cancelled or failed.'),
+          backgroundColor: Colors.red.shade700,
+        ),
+      );
+    } catch (e, stack) {
+      if (!mounted) return;
+      debugPrint('Order placement failed error: $e');
+      debugPrint(stack.toString());
+      
+      String displayError = e.toString();
+      if (e is DioException) {
+        final res = e.response;
+        if (res != null) {
+          displayError = 'Server Error (${res.statusCode}): ${res.data}';
+        } else {
+          displayError = 'Network Error: ${e.message}';
+        }
+      }
+      
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(displayError),
+          backgroundColor: Colors.red.shade700,
+        ),
+      );
     } finally {
       if (mounted) setState(() => _placing = false);
     }

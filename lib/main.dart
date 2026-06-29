@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:provider/provider.dart';
 
 import 'config/app_theme.dart';
@@ -15,10 +16,21 @@ import 'screens/register_screen.dart';
 import 'screens/restaurant_detail_screen.dart';
 import 'screens/splash_screen.dart';
 import 'services/notification_service.dart';
+import 'package:flutter_stripe/flutter_stripe.dart';
+import 'config/api_config.dart';
 
 Future<void> main() async {
   // Needed before using plugins (notifications) before runApp.
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Initialize Stripe SDK (Mobile only)
+  if (!kIsWeb) {
+    Stripe.publishableKey = ApiConfig.stripePublishableKey;
+    Stripe.merchantIdentifier = 'merchant.com.example.foodDeliveryCustomer';
+    Stripe.urlScheme = 'fooddeliverycustomer';
+    await Stripe.instance.applySettings();
+  }
+
   try {
     await NotificationService.init();
   } catch (_) {

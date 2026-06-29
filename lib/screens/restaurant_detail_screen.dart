@@ -9,6 +9,7 @@ import '../providers/cart_provider.dart';
 import '../services/restaurant_service.dart';
 import '../utils/error_utils.dart';
 import '../widgets/menu_item_tile.dart';
+import '../widgets/shimmer_loading.dart';
 
 /// Shows one restaurant and its menu, grouped by category.
 class RestaurantDetailScreen extends StatefulWidget {
@@ -40,7 +41,7 @@ class _RestaurantDetailScreenState extends State<RestaurantDetailScreen> {
         future: _future,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
+            return const ShimmerDetailPlaceholder();
           }
           if (snapshot.hasError) {
             return Scaffold(
