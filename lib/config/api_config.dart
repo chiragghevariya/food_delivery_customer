@@ -9,7 +9,7 @@ class ApiConfig {
   ///   - Laragon virtual host:    http://food-delivery.test/api
   ///
   /// Start the backend with:  php artisan serve   (defaults to port 8000)
-  static const String baseUrl = 'http://192.168.1.5:8000/api';
+  static const String baseUrl = 'http://192.168.1.10:8000/api';
 
   static const String stripePublishableKey = 'pk_test_51SaXt3Be7lcgzOrDgqNNn0AYmjrp7T0nZbPreRD8NUTTi4t3ykiALBmewLMQPdGSGqL3rixcqujuDJKciUiG87gd00epUc9GJp';
   static const String googleMapsApiKey = 'AIzaSyBmIEJSOtppzhwY8ADACmFpj-VH8k9DOh8';
